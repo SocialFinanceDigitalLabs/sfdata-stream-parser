@@ -1,0 +1,54 @@
+name: Build and Test
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9, "3.10"]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Poetry 📜
+        uses: snok/install-poetry@v1
+
+      - name: Cache dependencies
+        id: cached-poetry-dependencies
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-poetry-deps
+        with:
+          path: |
+            ~/.venv
+            ~/.cache/pypoetry
+          key: ${{ runner.os }}-py-${{ matrix.python-version }}-build-${{ env.cache-name }}-${{ hashFiles('**/pyproject.toml', '**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-py-${{ matrix.python-version }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-py-${{ matrix.python-version }}-build-
+            ${{ runner.os }}-
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Test with pytest
+        run: |
+          poetry run coverage run -m pytest
+
+      - name: Coverage report
+        run: |
+          poetry run coverage report
+          poetry run coverage xml
+
+      - name: "Upload coverage to Codecov"
+        uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
