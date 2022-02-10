@@ -105,5 +105,62 @@ def convert_to_int(stream: Iterable[events.ParseEvent]) -> Iterable[events.Parse
         yield event
 ```
 
-[more-itertools]: https://github.com/more-itertools/more-itertools
+We provide a shortcut function that allows to call custom functions on specific events:
 
+```python
+from sfdata_stream_parser import events
+from sfdata_stream_parser.filters.generic import filter_stream, pass_event
+from sfdata_stream_parser.checks import type_check
+
+stream = ... # Some event stream
+
+typed_stream = filter_stream(
+  stream,
+  pass_function=lambda e: events.Cell.from_event(e, value=int(e.value)),
+  fail_function=pass_event,
+  check=type_check(events.Cell),
+)
+```
+The filter_stream function takes a stream and a set of functions that are called on each event depending on the 
+outcome of the check function. If check returns a True for an event, the pass_function is called. If check returns 
+False, then the fail_function is called. In this case, we check for a specific event type, so only events of that 
+type are passed to the pass_function and the other are just passed straight through unmodified.
+
+This will of course raise an error if the value of cell is not an integer. To handle this we can also 
+provide an error function. 
+
+```python
+from sfdata_stream_parser import events
+from sfdata_stream_parser.filters.generic import filter_stream, ignore_error, pass_event
+from sfdata_stream_parser.checks import type_check
+
+stream = ... # Some event stream
+
+typed_stream = filter_stream(
+  stream, 
+  pass_function=lambda e: events.Cell.from_event(e, value=int(e.value)),
+  fail_function=pass_event,
+  error_function=ignore_error,
+  check=type_check(events.Cell),
+)
+
+```
+
+In this case we simply ignore the errors and return the original Cell. If we instead return a None from
+either of the fuction, we would completely remove the event from the stream, so this function can also 
+work as a filter. 
+
+## Checks and Filters
+
+We have two types of filtering concepts. The first is a check, which is a function that takes an event 
+and returns a boolean to indicate whether the event should be passed or blocked. 
+
+The second is a filter, which is a ParseEvent Generator function that takes an event and yields zero, one 
+or multiple events.
+
+A filter stream is a combination of a check and two filters, one filters if the event is passed, and
+the other if the event is blocked. In addition, the filtered stream can take an error handler that is
+invoked if either of the filters raises an error.
+
+
+[more-itertools]: https://github.com/more-itertools/more-itertools

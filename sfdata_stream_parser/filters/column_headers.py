@@ -27,10 +27,11 @@ def promote_first_row(source: Iterable[events.ParseEvent]) -> Iterable[events.Pa
 
 
 def header_wrapper(source: Iterator[events.ParseEvent]) -> Iterator[events.ParseEvent]:
+    assert hasattr(source, "__next__"), "Source must be an iterator"
     peekable_source = peekable(source)
 
     start_table = next(peekable_source)
-    assert isinstance(start_table, events.StartTable)
+    assert isinstance(start_table, events.StartTable), "Expected StartTable event"
     yield start_table
 
     # Skip anything between start table and the first row
@@ -38,16 +39,16 @@ def header_wrapper(source: Iterator[events.ParseEvent]) -> Iterator[events.Parse
         yield next(peekable_source)
 
     start_row = next(peekable_source)
-    assert isinstance(start_row, events.StartRow)
+    assert isinstance(start_row, events.StartRow), "Expected StartRow event"
 
     headers = []
     while not isinstance(peekable_source.peek(), events.EndRow):
         headers.append(next(peekable_source))
 
     end_row = next(peekable_source)
-    assert isinstance(end_row, events.EndRow)
+    assert isinstance(end_row, events.EndRow), "Expected EndRow event"
 
-    column_headers = _SafeList(c.value for c in headers)
+    column_headers = _SafeList(c.get('value') for c in headers)
 
     row_index = -1
     col_index = -1

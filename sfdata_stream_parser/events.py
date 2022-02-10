@@ -11,6 +11,9 @@ class ParseEvent:
         except KeyError as e:
             raise AttributeError from e
 
+    def get(self, key, default=None):
+        return self._args.get(key, default)
+
     @classmethod
     def from_event(cls, event, **kwargs):
         return cls(**{**event.as_dict(), **kwargs, 'source': event})
