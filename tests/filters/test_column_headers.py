@@ -35,6 +35,11 @@ def test_column_headers_start_rows(single_table):
     assert [x.headers for x in row_list] == [['Col1', 'Col2', 'Col3']] * 3
 
 
+def test_column_headers_start_table(single_table):
+    event_list = list(promote_first_row(single_table))
+    assert event_list[1].column_headers == ['Col1', 'Col2', 'Col3']
+
+
 def test_column_headers_extra_events():
     class DummyEvent(events.ParseEvent):
         pass

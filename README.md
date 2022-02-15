@@ -74,17 +74,17 @@ with open('filename.csv', newline='') as f:
 which would result in the following event stream:
 
 * StartContainer (name=README.md)
-  * StartTable
-    * StartRow(row_index=0, headers=[Column 1, Column 2, Column 3])
+  * StartTable (headers=[Column 1, Column 2, Column 3])
+    * StartRow(row_index=0)
       * Cell (value=R1C1, column_index=0, column_header=Column 1)
       * Cell (value=R1C2, column_index=1, column_header=Column 2)
       * Cell (value=R1C3, column_index=2, column_header=Column 3)
-    * EndRow(row_index=0, headers=[Column 1, Column 2, Column 3])
-    * StartRow(row_index=1, headers=[Column 1, Column 2, Column 3])
+    * EndRow(row_index=0)
+    * StartRow(row_index=1)
       * Cell (value=R2C1, column_index=0, column_header=Column 1)
       * Cell (value=R2C2, column_index=1, column_header=Column 2)
       * Cell (value=R2C3, column_index=2, column_header=Column 3)
-    * EndRow(row_index=1, headers=[Column 1, Column 2, Column 3])
+    * EndRow(row_index=1)
   * EndTable
 * EndContainer
 

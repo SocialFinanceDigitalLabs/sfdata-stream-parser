@@ -32,11 +32,11 @@ def header_wrapper(source: Iterator[events.ParseEvent]) -> Iterator[events.Parse
 
     start_table = next(peekable_source)
     assert isinstance(start_table, events.StartTable), "Expected StartTable event"
-    yield start_table
 
     # Skip anything between start table and the first row
+    intermediate = []
     while not isinstance(peekable_source.peek(), events.StartRow):
-        yield next(peekable_source)
+        intermediate.append(next(peekable_source))
 
     start_row = next(peekable_source)
     assert isinstance(start_row, events.StartRow), "Expected StartRow event"
@@ -49,6 +49,9 @@ def header_wrapper(source: Iterator[events.ParseEvent]) -> Iterator[events.Parse
     assert isinstance(end_row, events.EndRow), "Expected EndRow event"
 
     column_headers = _SafeList(c.get('value') for c in headers)
+
+    yield events.StartTable.from_event(start_table, column_headers=column_headers)
+    yield from intermediate
 
     row_index = -1
     col_index = -1
