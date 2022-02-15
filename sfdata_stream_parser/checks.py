@@ -1,9 +1,7 @@
-from typing import Iterable, Type, Union
-
-
+from typing import Iterable, Type, Union, Callable
 from sfdata_stream_parser import events
-from sfdata_stream_parser.filters.generic import EventCheck
 
+EventCheck = Callable[[events.ParseEvent], bool]
 OneOrMoreEventTypes = Union[Type[events.ParseEvent], Iterable[Type[events.ParseEvent]]]
 
 

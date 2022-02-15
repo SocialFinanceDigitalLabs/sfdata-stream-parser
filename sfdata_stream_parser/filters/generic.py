@@ -1,8 +1,8 @@
-from typing import Iterator, Iterable, Callable, Union
+from typing import Iterator, Iterable, Callable, Union, Mapping
 
 from sfdata_stream_parser import events
+from sfdata_stream_parser.checks import type_check, EventCheck
 
-EventCheck = Callable[[events.ParseEvent], bool]
 FilteredValue = Union[events.ParseEvent, Iterator[events.ParseEvent]]
 EventFilter = Callable[[events.ParseEvent], FilteredValue]
 FilterErrorHandler = Callable[[events.ParseEvent, Exception], FilteredValue]
@@ -89,3 +89,48 @@ def filter_stream(
                 yield from _event_or_iterable(fail_function(event))
         except Exception as ex:
             yield from _event_or_iterable(error_function(event, ex))
+
+
+def permissive_filter_stream(
+        iterable: Iterable[events.ParseEvent],
+        function: EventFilter,
+        check: EventCheck = lambda x: True,
+) -> Iterable[events.ParseEvent]:
+    """
+    A short-hand for a filter stream that applies the function to all events that pass the check. Otherwise
+    events pass through unchanged.
+
+    :param iterable:
+    :param function:
+    :param check:
+    :return:
+    """
+
+    for event in iterable:
+        if check(event):
+            yield from function(event)
+        else:
+            yield event
+
+
+def cell_header_stream_filter(
+        iterable: Iterable[events.ParseEvent],
+        mapping_functions: Mapping[str, EventFilter]
+) -> Iterable[events.ParseEvent]:
+    """
+    A stream filter that applies the filter function based on the value of the cell header.
+
+    :param iterable:
+    :param mapping_functions:
+    :return:
+    """
+
+    def filter_function(event: events.ParseEvent) -> FilteredValue:
+        column_header = event.get('column_header')
+        mapping_function = mapping_functions.get(column_header)
+        if mapping_function is None:
+            yield event
+        else:
+            yield from mapping_function(event)
+
+    yield from permissive_filter_stream(iterable, filter_function, type_check(events.Cell))
