@@ -1,4 +1,4 @@
-from typing import Iterator, Iterable, Callable, Union, Mapping
+from typing import Iterator, Iterable, Callable, Union, Mapping, Any
 
 from sfdata_stream_parser import events
 from sfdata_stream_parser.checks import type_check, EventCheck
@@ -113,29 +113,47 @@ def permissive_filter_stream(
             yield event
 
 
-def event_attribute_stream_filter(
+def extractor_stream_filter(
         iterable: Iterable[events.ParseEvent],
-        mapping_functions: Mapping[str, EventFilter],
-        event_attribute: str,
-) -> Iterable[events.ParseEvent]:
+        extractor: Callable[[events.ParseEvent], Any],
+        mapping_functions: Mapping[Any, EventFilter],
+):
     """
-    A stream filter that applies the filter function based on the value of an event attribute.
+    A stream filter that calls extractor to fetch a value from an event, and then applies the matching
+    mapping_function if found.
 
     :param iterable:
+    :param extractor:
     :param mapping_functions:
-    :param event_attribute:
     :return:
     """
 
     def filter_function(event: events.ParseEvent) -> FilteredValue:
-        attribute_value = event.get(event_attribute)
-        mapping_function = mapping_functions.get(attribute_value)
+        event_value = extractor(event)
+        mapping_function = mapping_functions.get(event_value)
         if mapping_function is None:
             yield event
         else:
             yield from mapping_function(event)
 
     yield from permissive_filter_stream(iterable, filter_function)
+
+
+def event_attribute_stream_filter(
+        iterable: Iterable[events.ParseEvent],
+        event_attribute: str,
+        mapping_functions: Mapping[str, EventFilter],
+) -> Iterable[events.ParseEvent]:
+    """
+    A stream filter that applies the filter function based on the value of an event attribute.
+
+    :param iterable:
+    :param event_attribute:
+    :param mapping_functions:
+    :return:
+    """
+
+    yield from extractor_stream_filter(iterable, lambda x: x.get(event_attribute), mapping_functions)
 
 
 def check_stream_filter(

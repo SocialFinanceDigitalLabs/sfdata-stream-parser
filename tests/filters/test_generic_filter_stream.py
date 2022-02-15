@@ -184,7 +184,7 @@ def test_cell_header_filter(cell_stream):
         'col3': MagicMock(side_effect=lambda x: (x,)),
     }
 
-    event_list = list(event_attribute_stream_filter(cell_stream, functions, 'column_header'))
+    event_list = list(event_attribute_stream_filter(cell_stream, 'column_header', functions))
     assert len(event_list) == len(cell_stream)
 
     assert functions['col1'].call_count == 2
@@ -204,13 +204,13 @@ def test_stream_check_filter(cell_stream):
 
     functions = {
         column_header_check('col1'): fn1,
-        column_header_check('col2'): fn2,
-        column_header_check('col3'): fn3,
+        column_header_check('col3'): fn2,
+        column_header_check('col6'): fn3,
     }
 
     event_list = list(check_stream_filter(cell_stream, functions))
     assert len(event_list) == len(cell_stream)
 
     assert fn1.call_count == 2
-    assert fn2.call_count == 2
-    assert fn3.call_count == 1
+    assert fn2.call_count == 1
+    assert fn3.call_count == 0
