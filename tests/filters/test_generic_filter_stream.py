@@ -4,7 +4,8 @@ import pytest
 
 from sfdata_stream_parser import events
 from sfdata_stream_parser.checks import type_check
-from sfdata_stream_parser.filters.generic import filter_stream, FilteredValue, skip_error, ignore_error, pass_event
+from sfdata_stream_parser.filters.generic import filter_stream, FilteredValue, skip_error, ignore_error, pass_event, \
+    permissive_filter_stream, cell_header_stream_filter
 
 
 @pytest.fixture
@@ -136,3 +137,57 @@ def test_modify_every_event(stream):
     sequence['v'] = 0
     event_list = list(filter_stream(stream, pass_function=_pass_func, fail_function=pass_event, check=type_check(events.EndTable)))
     assert [e.get('value', -1) for e in event_list] == [-1, -1, 1, -1]  # For this filter we block non matches
+
+
+def test_permissive_stream(stream):
+    mock = MagicMock(side_effect=lambda x: (x,))
+
+    event_list = list(permissive_filter_stream(stream, mock))
+    assert len(event_list) == 4
+    assert mock.call_count == 4
+
+    mock.reset_mock()
+
+    event_list = list(permissive_filter_stream(stream, mock, lambda x: False))
+    assert len(event_list) == 4
+    assert mock.call_count == 0
+
+    mock.reset_mock()
+
+    event_list = list(permissive_filter_stream(stream, mock, type_check((events.StartTable, events.EndTable))))
+    assert len(event_list) == 4
+    assert mock.call_count == 2
+
+
+def test_cell_header_filter():
+    stream = [
+        events.StartTable(nam='table'),
+        events.StartRow(),
+        events.Cell(column_header='col1'),
+        events.Cell(column_header='col2'),
+        events.Cell(column_header='col3'),
+        events.Cell(column_header='col4'),
+        events.EndRow(),
+        events.StartRow(),
+        events.Cell(column_header='col1'),
+        events.Cell(column_header='col2'),
+        events.EndRow(),
+        events.EndTable(),
+    ]
+
+    functions = {
+        'col1': MagicMock(side_effect=lambda x: (x,)),
+        'col2': MagicMock(side_effect=lambda x: (x,)),
+        'col3': MagicMock(side_effect=lambda x: (x,)),
+    }
+
+    event_list = list(cell_header_stream_filter(stream, functions))
+    assert len(event_list) == len(stream)
+
+    assert functions['col1'].call_count == 2
+    assert functions['col2'].call_count == 2
+    assert functions['col3'].call_count == 1
+
+
+
+
