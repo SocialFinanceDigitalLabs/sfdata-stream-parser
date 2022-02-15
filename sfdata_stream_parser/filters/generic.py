@@ -113,12 +113,38 @@ def permissive_filter_stream(
             yield event
 
 
-def cell_header_stream_filter(
+def event_attribute_stream_filter(
         iterable: Iterable[events.ParseEvent],
-        mapping_functions: Mapping[str, EventFilter]
+        mapping_functions: Mapping[str, EventFilter],
+        event_attribute: str,
 ) -> Iterable[events.ParseEvent]:
     """
-    A stream filter that applies the filter function based on the value of the cell header.
+    A stream filter that applies the filter function based on the value of an event attribute.
+
+    :param iterable:
+    :param mapping_functions:
+    :param event_attribute:
+    :return:
+    """
+
+    def filter_function(event: events.ParseEvent) -> FilteredValue:
+        attribute_value = event.get(event_attribute)
+        mapping_function = mapping_functions.get(attribute_value)
+        if mapping_function is None:
+            yield event
+        else:
+            yield from mapping_function(event)
+
+    yield from permissive_filter_stream(iterable, filter_function)
+
+
+def check_stream_filter(
+        iterable: Iterable[events.ParseEvent],
+        mapping_functions: Mapping[EventCheck, EventFilter]
+) -> Iterable[events.ParseEvent]:
+    """
+    A stream filter that applies the filter function based on a custom check function. This is more
+    flexible than event_attribute_stream_filter, but not as performant as it performs many more checks.
 
     :param iterable:
     :param mapping_functions:
@@ -126,11 +152,10 @@ def cell_header_stream_filter(
     """
 
     def filter_function(event: events.ParseEvent) -> FilteredValue:
-        column_header = event.get('column_header')
-        mapping_function = mapping_functions.get(column_header)
-        if mapping_function is None:
-            yield event
-        else:
-            yield from mapping_function(event)
+        for key, function in mapping_functions.items():
+            if key(event):
+                yield from function(event)
+                return
+        yield event
 
     yield from permissive_filter_stream(iterable, filter_function, type_check(events.Cell))

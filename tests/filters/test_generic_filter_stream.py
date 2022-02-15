@@ -3,9 +3,9 @@ from unittest.mock import MagicMock
 import pytest
 
 from sfdata_stream_parser import events
-from sfdata_stream_parser.checks import type_check
+from sfdata_stream_parser.checks import type_check, and_check
 from sfdata_stream_parser.filters.generic import filter_stream, FilteredValue, skip_error, ignore_error, pass_event, \
-    permissive_filter_stream, cell_header_stream_filter
+    permissive_filter_stream, check_stream_filter, event_attribute_stream_filter
 
 
 @pytest.fixture
@@ -15,6 +15,24 @@ def stream():
         events.StartTable(),
         events.EndTable(),
         events.EndContainer(),
+    )
+
+
+@pytest.fixture
+def cell_stream():
+    return (
+        events.StartTable(nam='table'),
+        events.StartRow(),
+        events.Cell(column_header='col1'),
+        events.Cell(column_header='col2'),
+        events.Cell(column_header='col3'),
+        events.Cell(column_header='col4'),
+        events.EndRow(),
+        events.StartRow(),
+        events.Cell(column_header='col1'),
+        events.Cell(column_header='col2'),
+        events.EndRow(),
+        events.EndTable(),
     )
 
 
@@ -159,35 +177,40 @@ def test_permissive_stream(stream):
     assert mock.call_count == 2
 
 
-def test_cell_header_filter():
-    stream = [
-        events.StartTable(nam='table'),
-        events.StartRow(),
-        events.Cell(column_header='col1'),
-        events.Cell(column_header='col2'),
-        events.Cell(column_header='col3'),
-        events.Cell(column_header='col4'),
-        events.EndRow(),
-        events.StartRow(),
-        events.Cell(column_header='col1'),
-        events.Cell(column_header='col2'),
-        events.EndRow(),
-        events.EndTable(),
-    ]
-
+def test_cell_header_filter(cell_stream):
     functions = {
         'col1': MagicMock(side_effect=lambda x: (x,)),
         'col2': MagicMock(side_effect=lambda x: (x,)),
         'col3': MagicMock(side_effect=lambda x: (x,)),
     }
 
-    event_list = list(cell_header_stream_filter(stream, functions))
-    assert len(event_list) == len(stream)
+    event_list = list(event_attribute_stream_filter(cell_stream, functions, 'column_header'))
+    assert len(event_list) == len(cell_stream)
 
     assert functions['col1'].call_count == 2
     assert functions['col2'].call_count == 2
     assert functions['col3'].call_count == 1
 
 
+def test_stream_check_filter(cell_stream):
+    def column_header_check(value):
+        def _check(event):
+            return event.get('column_header') == value
+        return and_check(type_check(events.Cell), _check)
 
+    fn1 = MagicMock(side_effect=lambda x: (x,))
+    fn2 = MagicMock(side_effect=lambda x: (x,))
+    fn3 = MagicMock(side_effect=lambda x: (x,))
 
+    functions = {
+        column_header_check('col1'): fn1,
+        column_header_check('col2'): fn2,
+        column_header_check('col3'): fn3,
+    }
+
+    event_list = list(check_stream_filter(cell_stream, functions))
+    assert len(event_list) == len(cell_stream)
+
+    assert fn1.call_count == 2
+    assert fn2.call_count == 2
+    assert fn3.call_count == 1
