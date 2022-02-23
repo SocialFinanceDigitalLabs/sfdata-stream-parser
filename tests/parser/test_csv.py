@@ -1,6 +1,6 @@
 import pytest
 
-from sfdata_stream_parser.parser import parse_csv
+from sfdata_stream_parser.parser.csv import parse_csv
 from sfdata_stream_parser import events
 
 

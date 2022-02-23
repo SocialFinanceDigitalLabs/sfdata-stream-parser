@@ -1,6 +1,6 @@
 import pytest
 
-from sfdata_stream_parser.parser import parse_csv
+from sfdata_stream_parser.parser.csv import parse_csv
 from sfdata_stream_parser.filters.column_headers import promote_first_row, _SafeList, header_wrapper
 from sfdata_stream_parser import events
 
