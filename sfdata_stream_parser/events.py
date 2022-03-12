@@ -21,6 +21,9 @@ class ParseEvent:
     def as_dict(self):
         return deepcopy(self._args)
 
+    def __eq__(self, other):
+        return self.as_dict() == other.as_dict()
+
 
 class StartContainer(ParseEvent):
     pass
@@ -47,4 +50,12 @@ class EndRow(ParseEvent):
 
 
 class Cell(ParseEvent):
+    pass
+
+
+class StartElement(ParseEvent):
+    pass
+
+
+class EndElement(ParseEvent):
     pass

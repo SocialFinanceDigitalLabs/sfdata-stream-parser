@@ -1,7 +1,9 @@
+import functools
 from typing import Iterator, Iterable, Callable, Union, Mapping, Any
 
 from sfdata_stream_parser import events
 from sfdata_stream_parser.checks import type_check, EventCheck
+from sfdata_stream_parser.events import ParseEvent
 
 FilteredValue = Union[events.ParseEvent, Iterator[events.ParseEvent]]
 EventFilter = Callable[[events.ParseEvent], FilteredValue]
@@ -80,15 +82,41 @@ def filter_stream(
         pass_function: EventFilter = pass_event,
         fail_function: EventFilter = block_event,
         error_function: FilterErrorHandler = raise_error,
+        **kwargs,
 ) -> Iterable[events.ParseEvent]:
     for event in iterable:
         try:
             if check(event):
-                yield from _event_or_iterable(pass_function(event))
+                yield from _event_or_iterable(pass_function(event, **kwargs))
             else:
-                yield from _event_or_iterable(fail_function(event))
+                yield from _event_or_iterable(fail_function(event, **kwargs))
         except Exception as ex:
-            yield from _event_or_iterable(error_function(event, ex))
+            yield from _event_or_iterable(error_function(event, ex, **kwargs))
+
+
+def __event_generator(func, default_args=None, **genargs):
+    @functools.wraps(func)
+    def wrapper(stream, *args, **kwargs):
+        if default_args:
+            _kwargs = default_args()
+            _kwargs.update(**kwargs)
+            kwargs = _kwargs
+
+        if isinstance(stream, ParseEvent):
+            stream = [stream]
+
+        yield from filter_stream(stream, *args, pass_function=func, **genargs, **kwargs)
+
+    return wrapper
+
+
+def streamfilter(arg=None, **kwargs):
+    if isinstance(arg, Callable):
+        return __event_generator(arg,  **kwargs)
+    else:
+        def wrapper(func):
+            return __event_generator(func,  **kwargs)
+        return wrapper
 
 
 def permissive_filter_stream(
