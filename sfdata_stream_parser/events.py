@@ -19,7 +19,7 @@ class ParseEvent:
         return cls(**{**event.as_dict(), **kwargs, 'source': event})
 
     def as_dict(self):
-        return deepcopy(self._args)
+        return self._args
 
     def __eq__(self, other):
         return self.as_dict() == other.as_dict()
