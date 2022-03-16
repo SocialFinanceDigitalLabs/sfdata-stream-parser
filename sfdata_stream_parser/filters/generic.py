@@ -56,23 +56,23 @@ def conditional_wrapper(
             yield outer_value
 
 
-def pass_event(event: events.ParseEvent) -> FilteredValue:
+def pass_event(event: events.ParseEvent, *_, **__) -> FilteredValue:
     return event
 
 
-def block_event(_) -> FilteredValue:
+def block_event(*_, **__) -> FilteredValue:
     return tuple()
 
 
-def raise_error(_, ex: Exception) -> FilteredValue:
+def raise_error(_, ex: Exception, **__) -> FilteredValue:
     raise ex
 
 
-def ignore_error(event: events.ParseEvent, _) -> FilteredValue:
+def ignore_error(event: events.ParseEvent, *_, **__) -> FilteredValue:
     return event
 
 
-def skip_error(*args) -> FilteredValue:
+def skip_error(*_, **__) -> FilteredValue:
     return ()
 
 
@@ -96,16 +96,16 @@ def filter_stream(
 
 def __event_generator(func, default_args=None, **genargs):
     @functools.wraps(func)
-    def wrapper(stream, *args, **kwargs):
+    def wrapper(stream, *_, **kwargs):
         if default_args:
             _kwargs = default_args()
             _kwargs.update(**kwargs)
             kwargs = _kwargs
 
         if isinstance(stream, ParseEvent):
-            stream = [stream]
+            stream = (stream,)
 
-        yield from filter_stream(stream, *args, pass_function=func, **genargs, **kwargs)
+        yield from filter_stream(stream, pass_function=func, **genargs, **kwargs)
 
     return wrapper
 
