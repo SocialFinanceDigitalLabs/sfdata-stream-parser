@@ -205,3 +205,27 @@ def check_stream_filter(
         yield event
 
     yield from permissive_filter_stream(iterable, filter_function, type_check(events.Cell))
+
+
+def until_match(iterable: Iterable[events.ParseEvent], check: EventCheck) -> FilteredValue:
+    """
+    A stream filter that yields events until the check function returns True.
+
+    The final event is consumed but not yielded. It can be recovered by catching the StopIteration exception.
+
+        try:
+            while event := next(stream):
+                yield event
+        except StopIteration as e:
+            final_event = e.value
+            yield final_event
+
+
+    :param iterable:
+    :param check:
+    :return:
+    """
+    for event in iterable:
+        if check(event):
+            return event
+        yield event

@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 
 class ParseEvent:
     def __init__(self, **kwargs):
@@ -53,9 +51,23 @@ class Cell(ParseEvent):
     pass
 
 
-class StartElement(ParseEvent):
+class XmlElement(ParseEvent):
     pass
 
 
-class EndElement(ParseEvent):
+class StartElement(XmlElement):
+    pass
+
+    @property
+    def normalised_text(self):
+        """
+        If the element has a string text property, then return this with whitespace stripped. Otherwise,
+        return None.
+        """
+        text = self.get('text', '')
+        if isinstance(text, str):
+            return text.strip()
+
+
+class EndElement(XmlElement):
     pass
