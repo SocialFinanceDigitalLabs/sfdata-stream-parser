@@ -121,7 +121,7 @@ def test_filter_stream_with_error_function(stream):
     event_list = list(filter_stream(stream, pass_function=_pass_func, error_function=skip_error))
     assert len(event_list) == 3
 
-    def _error_func_returning_none(*args) -> FilteredValue:
+    def _error_func_returning_none() -> FilteredValue:
         return None
 
     event_list = list(filter_stream(stream, pass_function=_pass_func, error_function=_error_func_returning_none))
@@ -130,7 +130,7 @@ def test_filter_stream_with_error_function(stream):
     event_list = list(filter_stream(stream, pass_function=_pass_func, error_function=ignore_error))
     assert len(event_list) == 4
 
-    def _error_func_returning_multiple(event, _) -> FilteredValue:
+    def _error_func_returning_multiple(event) -> FilteredValue:
         yield event
         yield event
 

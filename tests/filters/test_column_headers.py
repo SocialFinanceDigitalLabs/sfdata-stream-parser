@@ -1,7 +1,7 @@
 import pytest
 
 from sfdata_stream_parser.parser.csv import parse_csv
-from sfdata_stream_parser.filters.column_headers import promote_first_row, _SafeList, header_wrapper
+from sfdata_stream_parser.filters.column_headers import promote_first_row, _SafeList
 from sfdata_stream_parser import events
 
 
@@ -28,10 +28,10 @@ def test_safe_list():
 
 
 def test_column_headers_start_rows(single_table):
-    event_list = list(promote_first_row(single_table))
+    event_list = promote_first_row(single_table)
     row_list = list(filter(lambda x: isinstance(x, events.StartRow), event_list))
     assert len(row_list) == 3
-    assert [x.row_index for x in row_list] == [0, 1, 2]
+    assert [x.row_index for x in row_list] == [1, 2, 3]
     assert [x.headers for x in row_list] == [['Col1', 'Col2', 'Col3']] * 3
 
 
@@ -56,26 +56,11 @@ def test_column_headers_extra_events():
         events.EndRow(ix=8),
         events.EndTable(ix=9),
     ))
-    event_list = list(header_wrapper(stream))
+    event_list = list(promote_first_row(stream))
     assert len(event_list) == 7
 
     assert isinstance(event_list[1], DummyEvent)
     assert isinstance(event_list[2], DummyEvent)
 
     assert [e.ix for e in event_list] == [0, 1, 2, 6, 7, 8, 9]
-
-
-def test_header_wrapper_non_iterator():
-    with pytest.raises(AssertionError) as excinfo:
-        list(header_wrapper((events.StartTable(),)))
-
-    assert 'Source must be an iterator' in str(excinfo.value)
-
-
-def test_header_wrapper_wrong_start():
-    stream = iter((events.StartRow(),))
-    with pytest.raises(AssertionError) as excinfo:
-        list(header_wrapper(stream))
-
-    assert 'Expected StartTable event' in str(excinfo.value)
 

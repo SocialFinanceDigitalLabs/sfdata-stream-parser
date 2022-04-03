@@ -23,15 +23,12 @@ class ParseEvent:
         return self.as_dict() == other.as_dict()
 
 
-class StartContainer(ParseEvent):
-    pass
-
-
 class EndContainer(ParseEvent):
     pass
 
 
-class StartTable(ParseEvent):
+class StartContainer(ParseEvent):
+    end_event = EndContainer
     pass
 
 
@@ -39,7 +36,8 @@ class EndTable(ParseEvent):
     pass
 
 
-class StartRow(ParseEvent):
+class StartTable(ParseEvent):
+    end_event = EndTable
     pass
 
 
@@ -47,27 +45,48 @@ class EndRow(ParseEvent):
     pass
 
 
+class StartRow(ParseEvent):
+    end_event = EndRow
+    pass
+
+
 class Cell(ParseEvent):
     pass
 
 
-class XmlElement(ParseEvent):
+class XmlEvent(ParseEvent):
     pass
 
 
-class StartElement(XmlElement):
-    pass
-
-    @property
-    def normalised_text(self):
-        """
-        If the element has a string text property, then return this with whitespace stripped. Otherwise,
-        return None.
-        """
-        text = self.get('text', '')
-        if isinstance(text, str):
-            return text.strip()
+class EndElement(XmlEvent):
+    def __init__(self, **kwargs):
+        assert 'tag' in kwargs, "A tag property is required"
+        super().__init__(**kwargs)
 
 
-class EndElement(XmlElement):
-    pass
+class StartElement(XmlEvent):
+    end_event = EndElement
+
+    def __init__(self, **kwargs):
+        assert 'tag' in kwargs, "A tag property is required"
+        super().__init__(**kwargs)
+
+
+class ProcessingInstructionNode(XmlEvent):
+    def __init__(self, **kwargs):
+        assert 'text' in kwargs, "A text property is required"
+        super().__init__(**kwargs)
+
+
+class CommentNode(XmlEvent):
+    def __init__(self, **kwargs):
+        assert 'text' in kwargs, "A text property is required"
+        super().__init__(**kwargs)
+
+
+class TextNode(XmlEvent):
+
+    def __init__(self, **kwargs):
+        assert 'text' in kwargs, "A text property is required"
+        super().__init__(**kwargs)
+

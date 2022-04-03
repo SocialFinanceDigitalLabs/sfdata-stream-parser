@@ -1,33 +1,12 @@
 import functools
-from typing import Iterator, Iterable, Callable, Union, Mapping, Any
+from typing import Iterator, Iterable, Callable,Mapping, Any
 
-from sfdata_stream_parser import events
 from sfdata_stream_parser.checks import type_check, EventCheck
 from sfdata_stream_parser.events import ParseEvent
-
-FilteredValue = Union[events.ParseEvent, Iterator[events.ParseEvent]]
-EventFilter = Callable[[events.ParseEvent], FilteredValue]
-FilterErrorHandler = Callable[[events.ParseEvent, Exception], FilteredValue]
-
-
-def _event_or_iterable(value: FilteredValue) -> Iterable[events.ParseEvent]:
-    if isinstance(value, Iterable):
-        yield from value
-    elif isinstance(value, events.ParseEvent) or value is not None:
-        yield value
-
-
-def first_then_rest(first: events.ParseEvent, rest: Iterator[events.ParseEvent]) -> Iterable[events.ParseEvent]:
-    """
-    A very simple iterator that yields the first element and then the rest of the iterator. This is useful
-    if you have already consumed the first value and want to preserve it.
-
-    :param first:
-    :param rest:
-    :return:
-    """
-    yield first
-    yield from rest
+from sfdata_stream_parser.function_helpers import filter_caller
+from sfdata_stream_parser.functions import *
+from sfdata_stream_parser.stream import first_then_rest
+from sfdata_stream_parser.types import FilteredValue, EventFilter, FilterErrorHandler
 
 
 def conditional_wrapper(
@@ -56,26 +35,6 @@ def conditional_wrapper(
             yield outer_value
 
 
-def pass_event(event: events.ParseEvent, *_, **__) -> FilteredValue:
-    return event
-
-
-def block_event(*_, **__) -> FilteredValue:
-    return tuple()
-
-
-def raise_error(_, ex: Exception, **__) -> FilteredValue:
-    raise ex
-
-
-def ignore_error(event: events.ParseEvent, *_, **__) -> FilteredValue:
-    return event
-
-
-def skip_error(*_, **__) -> FilteredValue:
-    return ()
-
-
 def filter_stream(
         iterable: Iterable[events.ParseEvent],
         check: EventCheck = lambda x: True,
@@ -87,11 +46,11 @@ def filter_stream(
     for event in iterable:
         try:
             if check(event):
-                yield from _event_or_iterable(pass_function(event, **kwargs))
+                yield from filter_caller(pass_function, event, **kwargs)
             else:
-                yield from _event_or_iterable(fail_function(event, **kwargs))
+                yield from filter_caller(fail_function, event, **kwargs)
         except Exception as ex:
-            yield from _event_or_iterable(error_function(event, ex, **kwargs))
+            yield from filter_caller(error_function, event, ex, **kwargs)
 
 
 def __event_generator(func, default_args=None, **genargs):
@@ -207,11 +166,12 @@ def check_stream_filter(
     yield from permissive_filter_stream(iterable, filter_function, type_check(events.Cell))
 
 
-def until_match(iterable: Iterable[events.ParseEvent], check: EventCheck) -> FilteredValue:
+def until_match(iterable: Iterable[events.ParseEvent], check: EventCheck, yield_final=False) -> FilteredValue:
     """
     A stream filter that yields events until the check function returns True.
 
-    The final event is consumed but not yielded. It can be recovered by catching the StopIteration exception.
+    If yield_final is False (deafult), then the final event is consumed but not yielded. It can be recovered by
+    catching the StopIteration exception. If yield_final is True, then the final event is yielded.
 
         try:
             while event := next(stream):
@@ -221,11 +181,14 @@ def until_match(iterable: Iterable[events.ParseEvent], check: EventCheck) -> Fil
             yield final_event
 
 
+    :param yield_final:
     :param iterable:
     :param check:
     :return:
     """
     for event in iterable:
         if check(event):
+            if yield_final:
+                yield event
             return event
         yield event
