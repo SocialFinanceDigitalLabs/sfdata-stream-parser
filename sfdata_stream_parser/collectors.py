@@ -1,5 +1,5 @@
 import functools
-from typing import Callable, Optional
+from typing import Callable, Optional, Type
 
 from more_itertools import peekable
 
@@ -58,7 +58,7 @@ class _BlockChecker:
         return self._counter
 
 
-def block_check(start_type: ParseEvent = None, end_type: ParseEvent = None):
+def block_check(start_type: Type[ParseEvent] = None, end_type: Type[ParseEvent] = None):
     """
     Creates a collector check that checks for a nested block of events starting with start_type and ending with end_type.
 

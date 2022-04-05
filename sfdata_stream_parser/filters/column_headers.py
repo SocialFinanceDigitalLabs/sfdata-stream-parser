@@ -30,21 +30,27 @@ def promote_first_row(stream):
 
     @collector(check=block_check(start_type=events.StartRow), receive_stream=True, stop_after=True, iterations=1)
     def row_consumer(row):
-        row = list(row)
+        """ A collector that consumes the first row of a table and emits a _HeaderEvent event with the headers """
         _headers = []
         for event in filter_stream(row, type_check(events.Cell)):
             _headers.append(event.get("value", ""))
         yield _HeaderEvent(_headers)
 
+    # Consume the first row and extract the headers
     header_events = list(row_consumer(stream))
+    assert isinstance(header_events[-1], _HeaderEvent), "Expected _HeaderEvent event"
+
     headers = header_events[-1].headers
 
+    # Emit the StartTable event with the headers
     yield events.StartTable.from_event(start_table, column_headers=headers)
+
+    # Emit anything between the StartTable and the first row
     yield from header_events[:-1]
 
     @streamfilter(check=type_check(events.StartRow), fail_function=pass_event)
     def row_enricher(event):
         yield event.from_event(event, headers=headers)
 
-    stream = row_enricher(stream)
-    yield from stream
+    # Now add headers to every row
+    yield from row_enricher(stream)
