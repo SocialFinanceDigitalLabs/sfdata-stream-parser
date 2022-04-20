@@ -77,14 +77,14 @@ def test_read_from_read_only_workbook(sample_file):
 
 def test_read_from_string(sample_file):
     event_stream = list(parse_sheets(str(sample_file.absolute())))
-    assert len(event_stream) == 25163
+    assert len(event_stream) == 25177
     assert event_stream[0].name == str(sample_file.absolute())
 
 
 def test_read_from_stream(sample_file):
     with open(sample_file, "rb") as f:
         event_stream = list(parse_sheets(f))
-    assert len(event_stream) == 25163
+    assert len(event_stream) == 25177
     assert event_stream[0].name == str(sample_file.absolute())
 
 

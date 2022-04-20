@@ -10,8 +10,11 @@ def _parse_sheet(source: Worksheet):
     for row_ix, row in enumerate(source.rows):
         yield events.StartRow(row_index=row_ix)
         for col_ix, cell in enumerate(row):
-            yield events.Cell(value=cell.value, column_index=col_ix, excel_type=cell.data_type,
-                              excel_location=cell.coordinate, excel_number_format=cell.number_format)
+            props = dict(value=cell.value, column_index=col_ix)
+            props['excel_type'] = getattr(cell, 'data_type', None)
+            props['excel_location'] = getattr(cell, 'coordinate', None)
+            props['excel_number_format'] = getattr(cell, 'number_format', None)
+            yield events.Cell(**props)
         yield events.EndRow()
     yield events.EndTable()
 
