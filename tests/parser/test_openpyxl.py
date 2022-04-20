@@ -32,6 +32,8 @@ def sample_workbook():
     ws = wb.create_sheet("Test Sheet 3")
     for row in range(5):
         ws.append([f"R{row}C{col}" for col in range(5)])
+    ws.append([])
+    ws.append([f"R6C{col}" for col in range(5)])
 
     return wb
 
@@ -50,7 +52,7 @@ def test_read_from_workbook(sample_workbook):
     wb = sample_workbook
 
     event_stream = list(parse_sheets(wb))
-    assert len(event_stream) == 25163
+    assert len(event_stream) == 25177
 
     assert len(list(filter_stream(event_stream, type_check((events.StartContainer, events.EndContainer))))) == 2
 
@@ -61,11 +63,11 @@ def test_read_from_workbook(sample_workbook):
 
     assert len(list(filter_stream(table1, type_check(events.StartRow)))) == 40
     assert len(list(filter_stream(table2, type_check(events.StartRow)))) == 20
-    assert len(list(filter_stream(table3, type_check(events.StartRow)))) == 5
+    assert len(list(filter_stream(table3, type_check(events.StartRow)))) == 7
 
     assert len(list(filter_stream(table1, type_check(events.Cell)))) == 40 * 600
     assert len(list(filter_stream(table2, type_check(events.Cell)))) == 20 * 50
-    assert len(list(filter_stream(table3, type_check(events.Cell)))) == 5 * 5
+    assert len(list(filter_stream(table3, type_check(events.Cell)))) == 5 * 7
 
 
 def test_read_from_read_only_workbook(sample_file):
