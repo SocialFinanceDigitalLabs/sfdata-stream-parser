@@ -11,7 +11,7 @@ def _parse_sheet(source: Worksheet):
         yield events.StartRow(row_index=row_ix)
         for col_ix, cell in enumerate(row):
             yield events.Cell(value=cell.value, column_index=col_ix, excel_type=cell.data_type,
-                              excel_location=cell.coordinate, excel_number_format=cell.number_format)
+                              excel_number_format=cell.number_format)
         yield events.EndRow()
     yield events.EndTable()
 
