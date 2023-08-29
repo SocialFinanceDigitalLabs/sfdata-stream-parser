@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sfdata-stream-parser"
-version = "0.4.1"
+version = "0.5.0"
 description = "Loosely inspired by the Streaming API for XML (StAX), this library provides a Python iterator interface for working with tabular documents."
 authors = ["Kaj Siebert <kaj@k-si.com>"]
 license = "MIT"
