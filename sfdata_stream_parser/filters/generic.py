@@ -192,3 +192,80 @@ def until_match(iterable: Iterable[events.ParseEvent], check: EventCheck, yield_
                 yield event
             return event
         yield event
+
+
+class GeneratorReturnValueHolder:
+    """
+    A class that wraps a generator and allows access to the return value of the generator after it has been consumed.
+
+    Attempts at accessing the value before the generator has been consumed will raise a RuntimeError.
+
+    :param stream: The generator to wrap
+
+    Usage:
+        generator = [....]
+        return_value_holder = GeneratorReturnValueHolder(generator)
+        
+        # Consume the generator
+        list(return_value_holder)
+
+        # Access the return value
+        return_value = return_value_holder.value
+
+    """
+    def __init__(self, stream):
+        self.stream = stream
+        self._value = None
+        self._consumed = False
+
+    def __iter__(self):
+        self._value = yield from self.stream
+        self._consumed = True
+
+    def __next__(self):
+        try:
+            return next(self._value)
+        except StopIteration as e:
+            self._consumed = True
+            self._value = e.value
+            raise e
+
+    @property
+    def value(self):
+        if not self._consumed:
+            raise RuntimeError("Generator has not been consumed")
+        return self._value
+
+
+def generator_with_value(func):
+    """
+    A decorator that wraps a generator function and returns a GeneratorReturnValueHolder object that allows access
+    to the return value of the generator after it has been consumed.
+
+    Attempts at accessing the value before the generator has been consumed will raise a RuntimeError.
+
+    :param func:
+    :return:
+    
+    Usage:
+        @generator_with_value
+        def my_generator():
+            yield "value 1"
+            yield "value 2"
+            return "return value"
+
+        return_value_holder, stream = my_generator()
+
+        # Consume the generator
+        list(stream)
+
+        # Access the return value
+        return_value = return_value_holder.value
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return_value = GeneratorReturnValueHolder(func(*args, **kwargs))
+        return return_value, iter(return_value)
+
+    return wrapper
