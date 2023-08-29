@@ -269,3 +269,15 @@ def generator_with_value(func):
         return return_value, iter(return_value)
 
     return wrapper
+
+
+def consume(stream):
+    """Consumes a stream without doing anything with it or storing it in memory.
+
+    It returns nothing as the stream has been discarded. If you instead want to load the stream into memory, use
+    `list(stream)`.
+
+    :param stream: The stream to consume    
+    """
+    for _ in stream:
+        pass
